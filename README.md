@@ -39,3 +39,6 @@ This is a project that provides an improved pager (for example `more` and `less`
     be nice to jump between them. This may have to be something that
     `eve` handles however. Or some sort of integration.
 
+- [] Unicode support? (May be handled already)
+    - People like writing Unicode text, so I guess we ought to support it.
+
