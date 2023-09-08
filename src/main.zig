@@ -12,19 +12,15 @@ const NcursesError = error{ SetUpError, RefreshFailure };
 
 pub fn main() !void {
     try setup_ncurses();
+    defer teardown_ncurses();
 
     const text = try read_input(std.heap.c_allocator);
     defer std.heap.c_allocator.free(text);
 
-    _ = c.addstr(text.*);
+    _ = c.addstr(text.ptr);
     _ = c.refresh();
 
     std.time.sleep(1_500_000_000);
-    const errcode = c.endwin();
-    switch (errcode) {
-        0 => return,
-        else => std.debug.print("An Error occured, error code {d}", .{errcode}),
-    }
 }
 
 fn setup_ncurses() NcursesError!void {
@@ -42,6 +38,14 @@ fn setup_ncurses() NcursesError!void {
     if (c.refresh() != 0) {
         std.debug.print("Failure refreshing screen\n", .{});
         return NcursesError.RefreshFailure;
+    }
+}
+
+fn teardown_ncurses() void {
+    const errcode = c.endwin();
+    switch (errcode) {
+        0 => return,
+        else => std.debug.print("An Error occured, error code {d}", .{errcode}),
     }
 }
 
