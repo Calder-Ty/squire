@@ -1,2 +1,5 @@
-2023-09-04 Explore placing text into window +Exploration @display issue:2
-x 2023-09-04 Explore ncurses for making windows +Exploration @display issue:1
+2023-09-08 Display text using ansi escape sequences issue:4
+2023-09-08 Read from file passed in command line issue:3
+2023-09-08 write module for parsing arguments to the command issue:2
+x 2023-09-04 Explore placing text into window +Exploration @display issue:1
+x 2023-09-04 Explore ncurses for making windows +Exploration @display issue:0
