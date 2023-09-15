@@ -1,3 +1,4 @@
+2023-09-10 VTParse, get rid of NoAction and NoState States
 2023-09-08 Display text using ansi escape sequences issue:4
 2023-09-08 Read from file passed in command line issue:3
 2023-09-08 write module for parsing arguments to the command issue:2

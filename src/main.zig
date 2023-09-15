@@ -6,6 +6,8 @@ const c = @cImport({
 });
 
 const argparse = @import("./argparse.zig");
+const vtparse = @import("./vtparse.zig");
+const table = @import("./vtparse_table.zig");
 
 const MAX_READ_BYTES = 1 << 20;
 const ESC: u8 = 27;
@@ -13,6 +15,7 @@ const ESC: u8 = 27;
 const NcursesError = error{ SetUpError, RefreshFailure };
 
 pub fn main() !void {
+    std.debug.print("{*}", .{table.parse_table[0][0..255]});
 
     // Parse the Arguments
     const args = try std.process.argsAlloc(std.heap.c_allocator);
