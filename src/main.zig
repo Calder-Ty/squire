@@ -7,7 +7,7 @@ const c = @cImport({
 
 const argparse = @import("./argparse.zig");
 const vtparse = @import("./vtparse.zig");
-const table = @import("./vtparse_table.zig");
+const ansi = @import("./ansistyling.zig");
 
 const MAX_READ_BYTES = 1 << 20;
 const ESC: u8 = 27;
@@ -15,8 +15,6 @@ const ESC: u8 = 27;
 const NcursesError = error{ SetUpError, RefreshFailure };
 
 pub fn main() !void {
-    std.debug.print("{*}", .{table.parse_table[0][0..255]});
-
     // Parse the Arguments
     const args = try std.process.argsAlloc(std.heap.c_allocator);
     defer std.process.argsFree(std.heap.c_allocator, args);
@@ -96,12 +94,6 @@ fn file_path_from_args(args: [][:0]u8) ?[:0]u8 {
 }
 
 fn send_input_to_screen(content: []u8) void {
-    for (content) |char| {
-        // Allegedly ncurses handles multibyte characters ok
-        // We just need to handle the attributes
-        if (char == ESC) {
-            continue;
-        }
-        _ = c.addch(char);
-    }
+    var ansi_parser = vtparse.VTParser.init(ansi.handle_parse_events);
+    ansi_parser.parse(content);
 }

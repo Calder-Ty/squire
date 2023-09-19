@@ -1,6 +1,9 @@
 const std = @import("std");
 const pt = @import("./vtparse_table.zig");
 
+pub const Action = pt.Action;
+pub const ParserState = pt.ParserState;
+
 const MAX_INTERMEDIATE_CHARS = 2;
 
 fn action(table_entry: u8) ?pt.Action {
@@ -53,9 +56,9 @@ pub const VTParser = struct {
         };
     }
 
-    pub fn parse(self: *VTParser, data: []const u8, len: usize) void {
+    pub fn parse(self: *VTParser, data: []const u8) void {
         var i: usize = 0;
-        while (i < len) : (i += 1) {
+        while (i < data.len) : (i += 1) {
             const ch = data[i];
             const state_change = pt.parse_table[@intFromEnum(self.data.state) - 1][ch];
             self.doStateChange(state_change, ch);
@@ -162,5 +165,5 @@ test "VTParser" {
     const input = [_]u8{ 27, '[', '2', '2', 'm', 'a', 'b', 'c', 'd' };
 
     var parser = VTParser.init(testCallback);
-    parser.parse(&input, input.len);
+    parser.parse(&input);
 }
