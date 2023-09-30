@@ -33,7 +33,7 @@ pub fn main() !void {
     send_input_to_screen(text);
     _ = c.refresh();
 
-    std.time.sleep(1_500_000_000);
+    std.time.sleep(2_500_000_000);
     //     std.debug.print("Text len = {d}", .{text.len});
 }
 
@@ -47,7 +47,7 @@ fn setup_ncurses() NcursesError!void {
         return NcursesError.SetUpError;
     }
 
-    _ = c.initscr();
+    _ = c.newterm();
     _ = c.start_color();
 
     if (c.refresh() != 0) {
