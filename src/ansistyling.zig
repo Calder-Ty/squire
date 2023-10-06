@@ -5,21 +5,67 @@ const c = @cImport({
     @cInclude("ncurses.h");
 });
 
+/// A String With ansi styling information Attatched
+const StyledStr = struct {
+    text: std.ArrayList(u8),
+    fg: ?Color,
+    bg: ?Color,
+    effects: u8,
+
+    pub fn init(allocator: std.mem.Allocator) StyledStr {
+        return StyledStr{ .text = std.ArrayList(u8).init(allocator), .fg = null, .bg = null, .effects = 0 };
+    }
+
+    pub fn deinit(self: StyledStr) void {
+        self.text.deinit();
+    }
+
+    pub fn add_effect(self: *StyledStr, effect: Effect) void {
+        self.effects | effect;
+    }
+
+    pub fn push_char(self: *StyledStr, chars: []u8) std.mem.Allocator.Error!void {
+        self.text.appendSlice(chars);
+    }
+};
+
+const Color = enum {
+    BLACK,
+    RED,
+    GREEN,
+    YELLOW,
+    BLUE,
+    MAGENTA,
+    CYAN,
+    WHITE,
+};
+
+const Effect = enum(u8) {
+    BOLD = 1 << 1,
+    UNDERLINE = 1 << 2,
+    REVERSE = 1 << 3,
+    DIM = 1 << 4,
+    BLINK = 1 << 5,
+    PROTECT = 1 << 6,
+    INVIS = 1 << 7,
+    ITALIC = 1 << 8,
+};
+
 /// Process ansi styled text and send to stdscr
 pub fn handle_parse_events(state: *const vt.ParserData, to_action: vt.Action, char: u8) void {
     switch (to_action) {
         vt.Action.PRINT => {
+            // _ = c.attr_set(c.A_BOLD, c.COLOR_RED, null);
             _ = c.addch(char);
         },
         vt.Action.CSI_DISPATCH => {
-            std.debug.print("CSI_DISPATCH: state {}", .{state});
+            //             std.debug.print("CSI_DISPATCH: state {}", .{state});
             switch (char) {
                 // Color the console
                 'm' => {
                     var i: u8 = 0;
                     if (state.num_params == 0) {
                         // Reset the color state
-                        std.debug.print("Resetting state", .{});
                         _ = c.attr_set(c.A_NORMAL, 0, null);
                     }
                     while (i < state.num_params) : (i += 1) {
@@ -46,25 +92,25 @@ fn handle_sgr_parameter(param: u32) void {
             _ = c.attr_set(c.A_NORMAL, 0, null);
         },
         1 => {
-            _ = c.attr_set(c.A_BOLD, 0, null);
+            _ = c.attr_on(c.A_BOLD, null);
         },
         2 => {
-            _ = c.attr_set(c.A_DIM, 0, null);
+            _ = c.attr_on(c.A_DIM, null);
         },
         3 => {
-            _ = c.attr_set(c.A_ITALIC, 0, null);
+            _ = c.attr_on(c.A_ITALIC, null);
         },
         4 => {
-            _ = c.attr_set(c.A_UNDERLINE, 0, null);
+            _ = c.attr_on(c.A_UNDERLINE, null);
         },
         5, 6 => {
-            _ = c.attr_set(c.A_BLINK, 0, null);
+            _ = c.attr_on(c.A_BLINK, null);
         },
         7 => {
-            _ = c.attr_set(c.A_REVERSE, 0, null);
+            _ = c.attr_on(c.A_REVERSE, null);
         },
         8 => {
-            _ = c.attr_set(c.A_PROTECT, 0, null);
+            _ = c.attr_on(c.A_PROTECT, null);
         },
         9 => {
             // Not Supported by ncurses
@@ -88,28 +134,28 @@ fn handle_sgr_parameter(param: u32) void {
         //         28 => {},
         //         29 => {},
         30 => {
-            _ = c.attr_set(0, c.COLOR_BLACK, null);
+            _ = c.color_set(c.COLOR_BLACK, null);
         },
         31 => {
-            _ = c.attr_set(0, c.COLOR_RED, null);
+            _ = c.color_set(c.COLOR_RED, null);
         },
         32 => {
-            _ = c.attr_set(0, c.COLOR_GREEN, null);
+            _ = c.color_set(c.COLOR_GREEN, null);
         },
         33 => {
-            _ = c.attr_set(0, c.COLOR_YELLOW, null);
+            _ = c.color_set(c.COLOR_YELLOW, null);
         },
         34 => {
-            _ = c.attr_set(0, c.COLOR_BLUE, null);
+            _ = c.color_set(c.COLOR_BLUE, null);
         },
         35 => {
-            _ = c.attr_set(0, c.COLOR_MAGENTA, null);
+            _ = c.color_set(c.COLOR_MAGENTA, null);
         },
         36 => {
-            _ = c.attr_set(0, c.COLOR_CYAN, null);
+            _ = c.color_set(c.COLOR_CYAN, null);
         },
         37 => {
-            _ = c.attr_set(0, c.COLOR_WHITE, null);
+            _ = c.color_set(c.COLOR_WHITE, null);
         },
         //         38 => {},
         //         39 => {},

@@ -18,7 +18,8 @@ pub fn main() !void {
     // Parse the Arguments
     const args = try std.process.argsAlloc(std.heap.c_allocator);
     defer std.process.argsFree(std.heap.c_allocator, args);
-    //     std.debug.print("{s}\n", .{args});
+
+    // std.debug.print("{s}\n", .{args});
     const parsed_args = try argparse.parse_args(args);
 
     try setup_ncurses();
@@ -47,7 +48,7 @@ fn setup_ncurses() NcursesError!void {
         return NcursesError.SetUpError;
     }
 
-    _ = c.newterm();
+    _ = c.initscr();
     _ = c.start_color();
 
     if (c.refresh() != 0) {
