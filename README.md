@@ -26,19 +26,19 @@ This is a project that provides an improved pager (for example `more` and `less`
 
 ### Goals:
 
-- [] Easy Coloring (Squire should work with coloring out of the box)
-    - [] Look at Ansi styling (see rusts `anstyle` family of crates)
-    - [] look at termcap/terminfo (I know that less uses termcap)
+- [ ] Easy Coloring (Squire should work with coloring out of the box)
+    - [ ] Look at Ansi styling (see rusts `anstyle` family of crates)
+    - [ ] look at termcap/terminfo (I know that less uses termcap)
 
-- [] Feature Parity with `less`
+- [ ] Feature Parity with `less`
     - Less is the default pager in most distros, so we should be 
     able to do as good as that.
 
-- [] Movement between pages (stretch)
+- [ ] Movement between pages (stretch)
     - I hate having to open man pages by going back to the terminal, It would
     be nice to jump between them. This may have to be something that
     `eve` handles however. Or some sort of integration.
 
-- [] Unicode support? (May be handled already)
+- [ ] Unicode support? (May be handled already)
     - People like writing Unicode text, so I guess we ought to support it.
 
