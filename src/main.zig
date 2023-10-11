@@ -94,7 +94,13 @@ fn file_path_from_args(args: [][:0]u8) ?[:0]u8 {
     return args[0];
 }
 
+const TestStruct = struct {
+    pub fn handle_event(self: TestStruct) !void {
+        _ = self;
+    }
+};
+
 fn send_input_to_screen(content: []u8) void {
-    var ansi_parser = vtparse.VTParser.init(ansi.handle_parse_events);
+    var ansi_parser = vtparse.VTParser(ansi.StyledStream).init();
     ansi_parser.parse(content);
 }

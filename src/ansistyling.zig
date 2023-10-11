@@ -7,21 +7,18 @@ const c = @cImport({
 
 /// A String With ansi styling information Attatched
 const StyledStr = struct {
-    text: std.ArrayList(u8),
+    start: u32,
+    end: u32,
     fg: ?Color,
     bg: ?Color,
     effects: u8,
 
-    pub fn init(allocator: std.mem.Allocator) StyledStr {
-        return StyledStr{ .text = std.ArrayList(u8).init(allocator), .fg = null, .bg = null, .effects = 0 };
-    }
-
-    pub fn deinit(self: StyledStr) void {
-        self.text.deinit();
+    pub fn init(start: u32) StyledStr {
+        return StyledStr{ .start = start, .end = start, .fg = null, .bg = null, .effects = 0 };
     }
 
     pub fn add_effect(self: *StyledStr, effect: Effect) void {
-        self.effects | effect;
+        self.effects |= effect;
     }
 
     pub fn push_char(self: *StyledStr, chars: []u8) std.mem.Allocator.Error!void {
@@ -51,41 +48,49 @@ const Effect = enum(u8) {
     ITALIC = 1 << 8,
 };
 
-/// Process ansi styled text and send to stdscr
-pub fn handle_parse_events(state: *const vt.ParserData, to_action: vt.Action, char: u8) void {
-    switch (to_action) {
-        vt.Action.PRINT => {
-            // _ = c.attr_set(c.A_BOLD, c.COLOR_RED, null);
-            _ = c.addch(char);
-        },
-        vt.Action.CSI_DISPATCH => {
-            //             std.debug.print("CSI_DISPATCH: state {}", .{state});
-            switch (char) {
-                // Color the console
-                'm' => {
-                    var i: u8 = 0;
-                    if (state.num_params == 0) {
-                        // Reset the color state
-                        _ = c.attr_set(c.A_NORMAL, 0, null);
-                    }
-                    while (i < state.num_params) : (i += 1) {
-                        handle_sgr_parameter(state.params[i]);
-                    }
-                },
-                else => {},
-            }
-        },
-        else => {
-            switch (char) {
-                // HACK: This should be done via the proper action, but for now, we are just inspecting
-                // the characters and then printing them
-                '\n', '\t' => _ = c.addch(char),
-                else => {},
-            }
-        },
-    }
-}
+pub const StyledStream = struct {
+    //     text: std.ArrayList(u8),
+    //     text_data: std.ArrayList(StyledStr),
 
+    pub fn handle_event(self: *StyledStream, state: *const vt.ParserData, to_action: vt.Action, char: u8) void {
+        _ = self;
+        switch (to_action) {
+            vt.Action.PRINT => {
+                // _ = c.attr_set(c.A_BOLD, c.COLOR_RED, null);
+                _ = c.addch(char);
+            },
+            vt.Action.CSI_DISPATCH => {
+                //             std.debug.print("CSI_DISPATCH: state {}", .{state});
+                switch (char) {
+                    // Color the console
+                    'm' => {
+                        var i: u8 = 0;
+                        if (state.num_params == 0) {
+                            // Reset the color state
+                            _ = c.attr_set(c.A_NORMAL, 0, null);
+                        }
+                        while (i < state.num_params) : (i += 1) {
+                            handle_sgr_parameter(state.params[i]);
+                        }
+                    },
+                    else => {},
+                }
+            },
+            else => {
+                switch (char) {
+                    // HACK: This should be done via the proper action, but for now, we are just inspecting
+                    // the characters and then printing them
+                    '\n', '\t' => _ = c.addch(char),
+                    else => {},
+                }
+            },
+        }
+    }
+
+    //     fn init(text: std.ArrayList(u8), allocator: std.mem.Allocator)
+};
+
+/// Process ansi styled text and send to stdscr
 fn handle_sgr_parameter(param: u32) void {
     switch (param) {
         0 => {
