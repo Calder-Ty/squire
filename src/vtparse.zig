@@ -27,6 +27,7 @@ fn state(table_entry: u8) ?pt.ParserState {
 pub const ParserCallback = *const fn (state: *const ParserData, to_action: pt.Action, char: u8) void;
 
 pub const ParserData = struct {
+    index: usize = 0,
     state: pt.ParserState,
     intermediate_chars: [MAX_INTERMEDIATE_CHARS + 1]u8,
     num_intermediate_chars: u8,
@@ -57,22 +58,23 @@ pub fn VTParser(comptime HandlerType: type) type {
         const Self = @This();
         data: ParserData,
         handler: HandlerType,
+        // The current index of the parser into the input text
         // Oh look a void pointer, I guess i forgot about that
         //     void*              user_data;
 
-        pub fn init() Self {
+        pub fn init(stream_handler: HandlerType) Self {
             return Self{
                 .data = ParserData.init(),
-                .handler = HandlerType{},
+                .handler = stream_handler,
             };
         }
 
         /// This will parse a whole system in a stream,
         /// calling a callback to process data
         pub fn parse(self: *Self, data: []const u8) void {
-            var i: usize = 0;
-            while (i < data.len) : (i += 1) {
-                const ch = data[i];
+            self.data.index = 0;
+            while (self.data.index < data.len) : (self.data.index += 1) {
+                const ch = data[self.data.index];
                 const state_change = pt.parse_table[@intFromEnum(self.data.state) - 1][ch];
                 self.doStateChange(state_change, ch);
             }

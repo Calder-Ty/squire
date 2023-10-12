@@ -7,13 +7,13 @@ const c = @cImport({
 
 /// A String With ansi styling information Attatched
 const StyledStr = struct {
-    start: u32,
-    end: u32,
+    start: usize,
+    end: usize,
     fg: ?Color,
     bg: ?Color,
     effects: u8,
 
-    pub fn init(start: u32) StyledStr {
+    pub fn init(start: usize) StyledStr {
         return StyledStr{ .start = start, .end = start, .fg = null, .bg = null, .effects = 0 };
     }
 
@@ -21,8 +21,14 @@ const StyledStr = struct {
         self.effects |= effect;
     }
 
-    pub fn push_char(self: *StyledStr, chars: []u8) std.mem.Allocator.Error!void {
-        self.text.appendSlice(chars);
+    pub fn copy(orig: StyledStr) StyledStr {
+        return StyledStr{
+            .start = orig.start,
+            .end = orig.end,
+            .fg = orig.fg,
+            .bg = orig.bg,
+            .effects = orig.effects,
+        };
     }
 };
 
@@ -49,18 +55,25 @@ const Effect = enum(u8) {
 };
 
 pub const StyledStream = struct {
-    //     text: std.ArrayList(u8),
-    //     text_data: std.ArrayList(StyledStr),
+    text_data: std.ArrayList(StyledStr),
+
+    pub fn init(allocator: std.mem.Allocator) StyledStream {
+        var text_data = std.ArrayList(StyledStr).init(allocator);
+        return StyledStream{ .text_data = text_data };
+    }
+
+    pub fn deinit(self: StyledStream) void {
+        self.text_data.deinit();
+    }
 
     pub fn handle_event(self: *StyledStream, state: *const vt.ParserData, to_action: vt.Action, char: u8) void {
-        _ = self;
+        var str: StyledStr = self.text_data.getLastOrNull() orelse StyledStr.init(state.index);
         switch (to_action) {
             vt.Action.PRINT => {
-                // _ = c.attr_set(c.A_BOLD, c.COLOR_RED, null);
-                _ = c.addch(char);
+                // Printing means we want to advance the printed string to include the next character
+                str.end = state.index;
             },
             vt.Action.CSI_DISPATCH => {
-                //             std.debug.print("CSI_DISPATCH: state {}", .{state});
                 switch (char) {
                     // Color the console
                     'm' => {

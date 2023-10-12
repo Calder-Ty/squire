@@ -94,13 +94,15 @@ fn file_path_from_args(args: [][:0]u8) ?[:0]u8 {
     return args[0];
 }
 
-const TestStruct = struct {
-    pub fn handle_event(self: TestStruct) !void {
-        _ = self;
-    }
-};
-
 fn send_input_to_screen(content: []u8) void {
-    var ansi_parser = vtparse.VTParser(ansi.StyledStream).init();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const alloc = gpa.allocator();
+    defer {
+        const status = gpa.deinit();
+        if (status == .leak) @panic("MEMORY LEAK");
+    }
+    var stream = ansi.StyledStream.init(alloc);
+    defer stream.deinit();
+    var ansi_parser = vtparse.VTParser(ansi.StyledStream).init(stream);
     ansi_parser.parse(content);
 }
