@@ -11,14 +11,10 @@ const StyledStr = struct {
     end: usize,
     fg: ?Color,
     bg: ?Color,
-    effects: u8,
+    effects: Effect,
 
     pub fn init(start: usize) StyledStr {
-        return StyledStr{ .start = start, .end = start, .fg = null, .bg = null, .effects = 0 };
-    }
-
-    pub fn add_effect(self: *StyledStr, effect: Effect) void {
-        self.effects |= effect;
+        return StyledStr{ .start = start, .end = start, .fg = null, .bg = null, .effects = Effect{} };
     }
 
     pub fn copy(orig: StyledStr) StyledStr {
@@ -33,6 +29,7 @@ const StyledStr = struct {
 };
 
 const Color = enum {
+    DEFAULT,
     BLACK,
     RED,
     GREEN,
@@ -43,15 +40,16 @@ const Color = enum {
     WHITE,
 };
 
-const Effect = enum(u8) {
-    BOLD = 1 << 1,
-    UNDERLINE = 1 << 2,
-    REVERSE = 1 << 3,
-    DIM = 1 << 4,
-    BLINK = 1 << 5,
-    PROTECT = 1 << 6,
-    INVIS = 1 << 7,
-    ITALIC = 1 << 8,
+const Effect = packed struct(u16) {
+    BOLD: bool = false,
+    UNDERLINE: bool = false,
+    REVERSE: bool = false,
+    DIM: bool = false,
+    BLINK: bool = false,
+    PROTECT: bool = false,
+    INVIS: bool = false,
+    ITALIC: bool = false,
+    _padding: u8 = 0,
 };
 
 pub const StyledStream = struct {
@@ -79,11 +77,12 @@ pub const StyledStream = struct {
                     'm' => {
                         var i: u8 = 0;
                         if (state.num_params == 0) {
-                            // Reset the color state
-                            _ = c.attr_set(c.A_NORMAL, 0, null);
+                            str.effects = Effect{};
+                            str.fg = .DEFAULT;
+                            str.bg = .DEFAULT;
                         }
                         while (i < state.num_params) : (i += 1) {
-                            handle_sgr_parameter(state.params[i]);
+                            handle_sgr_parameter(state.params[i], &str);
                         }
                     },
                     else => {},
@@ -104,31 +103,31 @@ pub const StyledStream = struct {
 };
 
 /// Process ansi styled text and send to stdscr
-fn handle_sgr_parameter(param: u32) void {
+fn handle_sgr_parameter(param: u32, str: *StyledStr) void {
     switch (param) {
         0 => {
-            _ = c.attr_set(c.A_NORMAL, 0, null);
+            str.effects = Effect{};
         },
         1 => {
-            _ = c.attr_on(c.A_BOLD, null);
+            str.effects.BOLD = true;
         },
         2 => {
-            _ = c.attr_on(c.A_DIM, null);
+            str.effects.DIM = true;
         },
         3 => {
-            _ = c.attr_on(c.A_ITALIC, null);
+            str.effects.ITALIC = true;
         },
         4 => {
-            _ = c.attr_on(c.A_UNDERLINE, null);
+            str.effects.UNDERLINE = true;
         },
         5, 6 => {
-            _ = c.attr_on(c.A_BLINK, null);
+            str.effects.BLINK = true;
         },
         7 => {
-            _ = c.attr_on(c.A_REVERSE, null);
+            str.effects.REVERSE = true;
         },
         8 => {
-            _ = c.attr_on(c.A_PROTECT, null);
+            str.effects.PROTECT = true;
         },
         9 => {
             // Not Supported by ncurses
@@ -152,28 +151,28 @@ fn handle_sgr_parameter(param: u32) void {
         //         28 => {},
         //         29 => {},
         30 => {
-            _ = c.color_set(c.COLOR_BLACK, null);
+            str.fg = .BLACK;
         },
         31 => {
-            _ = c.color_set(c.COLOR_RED, null);
+            str.fg = .RED;
         },
         32 => {
-            _ = c.color_set(c.COLOR_GREEN, null);
+            str.fg = .GREEN;
         },
         33 => {
-            _ = c.color_set(c.COLOR_YELLOW, null);
+            str.fg = .YELLOW;
         },
         34 => {
-            _ = c.color_set(c.COLOR_BLUE, null);
+            str.fg = .BLUE;
         },
         35 => {
-            _ = c.color_set(c.COLOR_MAGENTA, null);
+            str.fg = .MAGENTA;
         },
         36 => {
-            _ = c.color_set(c.COLOR_CYAN, null);
+            str.fg = .CYAN;
         },
         37 => {
-            _ = c.color_set(c.COLOR_WHITE, null);
+            str.fg = .WHITE;
         },
         //         38 => {},
         //         39 => {},
