@@ -24,8 +24,6 @@ fn state(table_entry: u8) ?pt.ParserState {
     return @enumFromInt(val);
 }
 
-pub const ParserCallback = *const fn (state: *const ParserData, to_action: pt.Action, char: u8) void;
-
 pub const ParserData = struct {
     index: usize = 0,
     state: pt.ParserState,
@@ -57,12 +55,12 @@ pub fn VTParser(comptime HandlerType: type) type {
     return struct {
         const Self = @This();
         data: ParserData,
-        handler: HandlerType,
+        handler: *HandlerType,
         // The current index of the parser into the input text
         // Oh look a void pointer, I guess i forgot about that
         //     void*              user_data;
 
-        pub fn init(stream_handler: HandlerType) Self {
+        pub fn init(stream_handler: *HandlerType) Self {
             return Self{
                 .data = ParserData.init(),
                 .handler = stream_handler,
@@ -86,7 +84,8 @@ pub fn VTParser(comptime HandlerType: type) type {
             // we hand to our client for processing
 
             switch (in_action) {
-                pt.Action.PRINT, pt.Action.EXECUTE, pt.Action.HOOK, pt.Action.PUT, pt.Action.OSC_START, pt.Action.OSC_PUT, pt.Action.OSC_END, pt.Action.UNHOOK, pt.Action.CSI_DISPATCH, pt.Action.ESC_DISPATCH => self.handler.handle_event(&self.data, in_action, ch),
+                pt.Action.PRINT, pt.Action.EXECUTE, pt.Action.HOOK, pt.Action.PUT, pt.Action.OSC_START, pt.Action.OSC_PUT, pt.Action.OSC_END, pt.Action.UNHOOK, pt.Action.CSI_DISPATCH, pt.Action.ESC_DISPATCH => self.handler.handle_event(&self.data, in_action, ch) catch {},
+                // FIXME: ^^ I don't like just throwing this error away
 
                 pt.Action.IGNORE => {},
 

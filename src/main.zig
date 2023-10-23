@@ -99,10 +99,11 @@ fn send_input_to_screen(content: []u8) void {
     const alloc = gpa.allocator();
     defer {
         const status = gpa.deinit();
-        if (status == .leak) @panic("MEMORY LEAK");
+
+        if (status == .leak) std.debug.print("Memory Leak Detected", .{});
     }
     var stream = ansi.StyledStream.init(alloc);
     defer stream.deinit();
-    var ansi_parser = vtparse.VTParser(ansi.StyledStream).init(stream);
+    var ansi_parser = vtparse.VTParser(ansi.StyledStream).init(&stream);
     ansi_parser.parse(content);
 }

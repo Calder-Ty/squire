@@ -64,12 +64,19 @@ pub const StyledStream = struct {
         self.text_data.deinit();
     }
 
-    pub fn handle_event(self: *StyledStream, state: *const vt.ParserData, to_action: vt.Action, char: u8) void {
-        var str: StyledStr = self.text_data.getLastOrNull() orelse StyledStr.init(state.index);
+    pub fn handle_event(self: *StyledStream, state: *const vt.ParserData, to_action: vt.Action, char: u8) !void {
+        var str: *StyledStr = undefined;
+        if (self.text_data.items.len > 0) {
+            str = &self.text_data.items[self.text_data.items.len - 1];
+        } else {
+            const str_ob = StyledStr.init(state.index);
+            try self.text_data.append(str_ob);
+            str = &self.text_data.items[self.text_data.items.len - 1];
+        }
         switch (to_action) {
             vt.Action.PRINT => {
                 // Printing means we want to advance the printed string to include the next character
-                str.end = state.index;
+                str.*.end = state.index;
             },
             vt.Action.CSI_DISPATCH => {
                 switch (char) {
@@ -77,12 +84,12 @@ pub const StyledStream = struct {
                     'm' => {
                         var i: u8 = 0;
                         if (state.num_params == 0) {
-                            str.effects = Effect{};
-                            str.fg = .DEFAULT;
-                            str.bg = .DEFAULT;
+                            str.*.effects = Effect{};
+                            str.*.fg = .DEFAULT;
+                            str.*.bg = .DEFAULT;
                         }
                         while (i < state.num_params) : (i += 1) {
-                            handle_sgr_parameter(state.params[i], &str);
+                            handle_sgr_parameter(state.params[i], str);
                         }
                     },
                     else => {},
@@ -93,7 +100,9 @@ pub const StyledStream = struct {
                     // HACK: This should be done via the proper action, but for now, we are just inspecting
                     // the characters and then printing them
                     '\n', '\t' => _ = c.addch(char),
-                    else => {},
+                    else => {
+                        try self.text_data.append(str.*.copy());
+                    },
                 }
             },
         }
