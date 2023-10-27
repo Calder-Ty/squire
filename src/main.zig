@@ -31,7 +31,7 @@ pub fn main() !void {
     //     std.debug.print("Number of Colors possible: {d}", .{c.COLORS});
     //     std.debug.print("Text Message is: {s}", .{text});
 
-    send_input_to_screen(text);
+    try send_input_to_screen(text);
     _ = c.refresh();
 
     std.time.sleep(2_500_000_000);
@@ -94,16 +94,28 @@ fn file_path_from_args(args: [][:0]u8) ?[:0]u8 {
     return args[0];
 }
 
-fn send_input_to_screen(content: []u8) void {
+fn send_input_to_screen(content: []u8) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
     defer {
         const status = gpa.deinit();
-
-        if (status == .leak) std.debug.print("Memory Leak Detected", .{});
+        if (status == .leak) @panic("MEMORY LEAK");
     }
     var stream = ansi.StyledStream.init(alloc);
     defer stream.deinit();
     var ansi_parser = vtparse.VTParser(ansi.StyledStream).init(&stream);
     ansi_parser.parse(content);
+
+    for (stream.text_data.items) |str| {
+        if (str.start == str.end) {
+            continue;
+        }
+        if (str.start != null and str.end != null) {
+            for (content[str.start.?..str.end.?]) |ch| {
+                _ = c.addch(ch);
+            }
+        } else {
+            continue;
+        }
+    }
 }

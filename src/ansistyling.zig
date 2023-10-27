@@ -7,14 +7,14 @@ const c = @cImport({
 
 /// A String With ansi styling information Attatched
 const StyledStr = struct {
-    start: usize,
-    end: usize,
+    start: ?usize,
+    end: ?usize,
     fg: ?Color,
     bg: ?Color,
     effects: Effect,
 
-    pub fn init(start: usize) StyledStr {
-        return StyledStr{ .start = start, .end = start, .fg = null, .bg = null, .effects = Effect{} };
+    pub fn init() StyledStr {
+        return StyledStr{ .start = null, .end = null, .fg = null, .bg = null, .effects = Effect{} };
     }
 
     pub fn copy(orig: StyledStr) StyledStr {
@@ -66,30 +66,36 @@ pub const StyledStream = struct {
 
     pub fn handle_event(self: *StyledStream, state: *const vt.ParserData, to_action: vt.Action, char: u8) !void {
         var str: *StyledStr = undefined;
-        if (self.text_data.items.len > 0) {
-            str = &self.text_data.items[self.text_data.items.len - 1];
-        } else {
-            const str_ob = StyledStr.init(state.index);
+        if (self.text_data.items.len == 0) {
+            const str_ob = StyledStr.init();
             try self.text_data.append(str_ob);
-            str = &self.text_data.items[self.text_data.items.len - 1];
         }
+        str = &self.text_data.items[self.text_data.items.len - 1];
         switch (to_action) {
             vt.Action.PRINT => {
+                if (str.start == null) {
+                    // Null Index means this is the first printable character
+                    str.*.start = state.index;
+                }
                 // Printing means we want to advance the printed string to include the next character
                 str.*.end = state.index;
             },
             vt.Action.CSI_DISPATCH => {
+                // A Change in color requires a new string
+                var new_str = str.*.copy();
+                new_str.start = null;
+                try self.text_data.append(new_str);
                 switch (char) {
                     // Color the console
                     'm' => {
                         var i: u8 = 0;
                         if (state.num_params == 0) {
-                            str.*.effects = Effect{};
-                            str.*.fg = .DEFAULT;
-                            str.*.bg = .DEFAULT;
+                            new_str.effects = Effect{};
+                            new_str.fg = .DEFAULT;
+                            new_str.bg = .DEFAULT;
                         }
                         while (i < state.num_params) : (i += 1) {
-                            handle_sgr_parameter(state.params[i], str);
+                            handle_sgr_parameter(state.params[i], &new_str);
                         }
                     },
                     else => {},
@@ -99,7 +105,7 @@ pub const StyledStream = struct {
                 switch (char) {
                     // HACK: This should be done via the proper action, but for now, we are just inspecting
                     // the characters and then printing them
-                    '\n', '\t' => _ = c.addch(char),
+                    '\n', '\t' => str.*.end = state.index,
                     else => {
                         try self.text_data.append(str.*.copy());
                     },
@@ -107,8 +113,6 @@ pub const StyledStream = struct {
             },
         }
     }
-
-    //     fn init(text: std.ArrayList(u8), allocator: std.mem.Allocator)
 };
 
 /// Process ansi styled text and send to stdscr
